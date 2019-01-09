@@ -1,0 +1,205 @@
+import java.util.ArrayList;
+
+class HashNodeLL<K,V>
+{
+    K key;
+    V value;
+    HashNodeLL<K, V> next;
+    public HashNodeLL(K key, V value)
+    {
+        this.key = key;
+        this.value = value;
+        next = null;
+    }
+
+    @Override
+    public String toString() {
+
+        StringBuilder s = new StringBuilder();
+
+        HashNodeLL<K,V> iterator = next;
+
+        s.append("(").append(key.toString()).append(",").append(value.toString()).append(")").append(" -> ");
+
+        while (iterator != null)
+        {
+           s.append("(").append(iterator.key.toString()).append(",").append(iterator.value.toString()).append(")").append(" -> ");
+           iterator = iterator.next;
+
+        }
+        return s.toString();
+
+    }
+}
+public class HashTableSC<K,V> {
+
+    public boolean DEBUG ;
+    private static final double LOAD_FACTOR_THRESHOLD = 0.5;
+    private static final int DEFAULT_CAPACITY = 10;
+
+    private int numberOfCollisions;
+    private int numberOfHits;
+
+    private ArrayList<HashNodeLL<K, V>> table; //Hashtable is an Array of Linked Lists
+    // # of current chains / total current capacity of hashtable
+    private int numChains;
+
+    // current size of hashtable
+    private int size;
+
+    public HashTableSC(boolean DEBUG) {
+        this.DEBUG = DEBUG;
+        numberOfCollisions = 0;
+        table = new ArrayList<>();
+        numChains = DEFAULT_CAPACITY; // initially capacity set to default
+        size = 0;
+
+        // Create empty chains
+        for (int i = 0; i < numChains; i++)
+            table.add(null);
+    }
+
+    public int size() {
+        return size;
+    }
+
+    public boolean isEmpty() {
+        return size() == 0;
+    }
+
+    //Hash Function that returns a valid index in the hashtable for a key
+    private int hash(K key) {
+        numberOfHits++;
+        int hashCode = Math.abs(key.hashCode());
+        return hashCode % numChains; //returns a valid index of the hashtable
+    }
+
+
+    public V remove(K key) {
+
+        int i = hash(key); //index for the key to be removed
+
+        // top element of the linked list having our key
+        HashNodeLL<K, V> head = table.get(i);
+
+        // Search for key in its chain
+        HashNodeLL<K, V> prev = null;
+        while (head != null) {
+            // If Key found
+            if (head.key.equals(key))
+                break;
+
+            // Else keep moving in chain
+            prev = head;
+            head = head.next;
+        }
+
+        if (head == null) //key not found in the list
+            return null;
+
+        size--;
+
+        // Remove key
+        if (prev != null) // if our key is not the top element
+            prev.next = head.next;
+        else
+            table.set(i, head.next); //if our key is the top element in the Linked list
+
+        return head.value;
+    }
+
+    // Returns value for a key
+    public V get(K key) {
+        // Find head of chain for a given key
+        int bucketIndex = hash(key);
+        HashNodeLL<K, V> head = table.get(bucketIndex);
+
+        // look up that chain
+        while (head != null) {
+            if (head.key.equals(key))
+                return head.value;
+            head = head.next;
+        }
+
+        // If key not found
+        return null;
+    }
+
+    public boolean put(K key, V value) {
+
+        int idx = hash(key); //returns a valid index of the chain
+
+        HashNodeLL<K, V> head = table.get(idx);// Find head of chain for given key
+
+        while (head != null) {
+            if (head.key.equals(key)) {
+                return false; //if key is already present, discard the key
+            }
+            head = head.next;
+        }
+
+        // insert
+        size++;
+        head = table.get(idx);
+
+        if(head != null) numberOfCollisions++ ;
+
+        HashNodeLL<K, V> newNode = new HashNodeLL<>(key, value);
+        newNode.next = head;
+
+        table.set(idx, newNode); // set the new node at the top of the chain
+
+        // If load factor goes beyond LOAD_FACTOR_THRESHOLD, then double hash table size
+        if (loadFactor() >= LOAD_FACTOR_THRESHOLD) {
+            if(DEBUG)System.out.println("Doubling Hashtable size - Collisions So Far :"+this.numberOfCollisions + "Load Factor :"+loadFactor());
+
+            ArrayList<HashNodeLL<K, V>> prevHashTable = table;
+            table = new ArrayList<>();
+            numChains = 2 * numChains;
+            size = 0;
+
+            for (int i = 0; i < numChains; i++)
+                table.add(null);
+
+            for (HashNodeLL<K, V> top : prevHashTable) {
+                while (top != null) {
+                    put(top.key, top.value);
+                    top = top.next;
+                }
+            }
+
+        }
+        return true;
+    }
+
+    private double loadFactor()
+    {
+        return size * 1.0 / numChains;
+    }
+
+    @Override
+    public String toString() {
+
+        StringBuilder str = new StringBuilder();
+
+        int i = 0;
+        for (HashNodeLL<K,V> ll : table) {
+            if(ll != null) str.append(i).append(":").append(ll.toString()).append("\n");
+            else str.append(i).append(":").append("null").append("\n");
+            i++;
+        }
+        return "HashTableSC{" +
+                "numberOfCollisions=" + numberOfCollisions +
+                " numChains=" + numChains +
+                " size=" + size +
+                '}' + "\n" + str.toString();
+    }
+
+    public int getNumberOfCollisions() {
+        return numberOfCollisions;
+    }
+
+    public int getNumberOfHits() {
+        return numberOfHits;
+    }
+}
