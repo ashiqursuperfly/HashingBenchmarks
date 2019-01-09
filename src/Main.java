@@ -19,8 +19,7 @@ public class Main {
     }
     //TODO : Create a Hashtable interface, for a generic test function
 
-    public static void testSC(int testSize, boolean DEBUG)
-    {
+    public static void testSC(int testSize, boolean DEBUG) {
         HashTableSC<String,Integer> hashtableSC = new HashTableSC<>(DEBUG);
         ArrayList<String> strings = new ArrayList<>();
         for (int i = 0; i < testSize ; i++)
@@ -43,7 +42,7 @@ public class Main {
 
 
     }
-    public static void testDH(int testSize, boolean DEBUG){
+    public static void testDH(int testSize, boolean DEBUG) {
         HashTableDH<String,Integer> hashTableDH = new HashTableDH<>(DEBUG);
         ArrayList<String> strings = new ArrayList<>();
         for (int i = 0; i < testSize ; i++)
@@ -61,8 +60,7 @@ public class Main {
                 + hashTableDH.getNumberOfCollisions()
                 + " Average hits: " + hashTableDH.getNumberOfHits() * 1.0 / testSize);
 
-                System.out.println("REMOVING :"+strings.size());
-
+        System.out.println("REMOVING :"+strings.size());
         for (String s :
                 strings) {
 
@@ -78,36 +76,59 @@ public class Main {
 
 
     }
-    public static void testCP(int testSize, boolean DEBUG)
-    {
-        HashTableCP<String,Integer> hashTableDH = new HashTableCP<>(DEBUG);
+    public static void testCP(int testSize, boolean DEBUG) {
+        HashTableCP<String,Integer> hashTableCP = new HashTableCP<>(DEBUG);
         ArrayList<String> strings = new ArrayList<>();
         for (int i = 0; i < testSize ; i++)
         {
             String s = generateRandomString(7);
             strings.add(s);
-            if(!hashTableDH.put(s, i))
+            if(!hashTableCP.put(s, i))
                 i--;
 
-            if(DEBUG) System.out.println(hashTableDH);
+            if(DEBUG) System.out.println(hashTableCP);
 
 
         }
-        if(DEBUG)System.out.println(hashTableDH);
+        if(DEBUG)System.out.println(hashTableCP);
 
         System.out.println("REPORT: " +"Test Size: "+ testSize);
         System.out.println("Using CUSTOM PROBING Method: # of Collisions: "
-                + hashTableDH.getNumberOfCollisions()
-                + " Average hits: " + hashTableDH.getNumberOfHits() * 1.0 / testSize);
+                + hashTableCP.getNumberOfCollisions()
+                + " Average hits: " + hashTableCP.getNumberOfHits() * 1.0 / testSize);
+
+        System.out.println("REMOVING All "+ strings.size() + "Elements");
+        for (String s : strings) {
+            if(!hashTableCP.remove(s.trim()))
+            {
+                System.out.println("Couldnot delete key: "+s);
+                System.out.println("Searching the key: " + hashTableCP.get(s));
+            }
+        }
+        System.out.println(hashTableCP.size());
+
+        for (int i = 0; i < testSize ; i++)
+        {
+            String s = generateRandomString(7);
+            strings.add(s);
+            if(!hashTableCP.put(s, i))
+                i--;
+
+            if(DEBUG) System.out.println(hashTableCP);
+
+
+        }
+        if(DEBUG)System.out.println(hashTableCP);
+
 
     }
 
     public static void main(String[] args) {
         // write your code here
-        int testSize = 2000;
+        int testSize = 10;
 
-        //testCP(testSize, false);
-        testDH(testSize, true);
+        testCP(testSize, true);
+        //testDH(testSize, true);
         //testSC(testSize, false);
 
     }

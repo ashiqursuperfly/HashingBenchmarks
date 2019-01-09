@@ -7,9 +7,9 @@ public class HashTableCP<K,V> {
     private static final int PRIME = 13;
     private static final int C2 = 7;
     private static final int C1 = 3;
-
     private boolean DEBUG ;
 
+    private boolean[] isDeleted;
     private int numberOfCollisions;
     private int numberOfHits;
 
@@ -27,6 +27,7 @@ public class HashTableCP<K,V> {
     public HashTableCP(boolean DEBUG) {
         N = DEFAULT_CAPACITY;
         numberOfCollisions = 0;
+        isDeleted = new boolean[DEFAULT_CAPACITY];
         this.DEBUG = DEBUG;
         table = new ArrayList<>(N);
         for (int i = 0; i < N; i++) {
@@ -78,6 +79,7 @@ public class HashTableCP<K,V> {
         HashNode<K, V> newNode = new HashNode<>(key, value);
 
         table.set(idx, newNode); // set the new node at the top of the chain
+        isDeleted[idx] = false;
 
         // If load factor goes beyond LOAD_FACTOR_THRESHOLD, then double hash table size
 
@@ -87,6 +89,7 @@ public class HashTableCP<K,V> {
             N = 2 * N;
             size = 0;
             table = new ArrayList<>(N);
+            isDeleted = new boolean[N];
             for (int j = 0; j < N; j++) {
                 table.add(null);
             }
@@ -128,11 +131,10 @@ public class HashTableCP<K,V> {
         HashNode<K,V> node = table.get(idx);
 
         int i = 0;
-        while (node != null)
+        while (node != null || isDeleted[idx])
         {
-            if(key.equals(node.key))
+            if(node != null && key.equals(node.key))
                 return idx;
-
             idx = customHash(key, i++);
             node = table.get(idx);
         }
@@ -145,6 +147,19 @@ public class HashTableCP<K,V> {
         if(idx == -1)return null;
 
         else return table.get(idx).value;
+    }
+    public boolean remove(K key)
+    {
+        int idx = indexOf(key);
+
+        if(idx == -1) return false;
+
+        size--;
+        table.set(idx, null);
+        isDeleted[idx] = true;
+
+        return true;
+
     }
     public int getNumberOfHits() {
         return numberOfHits;
