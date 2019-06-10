@@ -1,28 +1,26 @@
-package openAddressing;
 import java.util.ArrayList;
 
-public class HashTableDH<K,V> {
-    private static final double LOAD_FACTOR_THRESHOLD = 0.45;
+public class HashTableDH<K,V> extends MyHashTable<K>{
     private static final int PRIME = 7;
+    private boolean isHash1;
     private boolean DEBUG ;
     private boolean[] isDeleted;
 
     private int numberOfCollisions;
-    private int numberOfHits;
 
-    private static final int DEFAULT_CAPACITY = 13;
     private ArrayList<HashNode<K, V>> table; //Data container
 
     // current size of hashtable
     private int size; // current # of elements
-    private int N; // size of hashtable
+
 
     public int size() {
         return size;
     }
-    public HashTableDH(boolean DEBUG) {
-        N = DEFAULT_CAPACITY;
-        isDeleted = new boolean[DEFAULT_CAPACITY];
+    public HashTableDH(boolean DEBUG, boolean isHash1, int initSize) {
+        super(initSize);
+        this.isHash1 = isHash1;
+        isDeleted = new boolean[initSize];
         numberOfCollisions = 0;
         this.DEBUG = DEBUG;
         table = new ArrayList<>(N);
@@ -30,30 +28,20 @@ public class HashTableDH<K,V> {
             table.add(null);
         }
     }
-    private int hash(K key)
-    {
-        numberOfHits++;
-        return (Math.abs(key.hashCode()) % N);
-    }
-    private int auxHash(K key)
-    {
-        return PRIME - (Math.abs(key.hashCode()) % PRIME);
-    }
+
+
     private int doubleHash(K key, int i)
     {
-        int idx = ((hash(key) + i * auxHash(key)) % N);
+        int idx =  isHash1 ? ((hash1(key) + i * auxHash(key) + i*i*hash2(key) ) % N) : ((hash2(key) + i * auxHash(key) + i*i*hash2(key)) % N);
         if(idx < 0) {
-            System.out.println("Hashed Two Negative index : H1: " + hash(key) + "H2: " +
-                    auxHash(key) + "H1|H2: " + idx +"at i :"+ i + "Table Size: " + N
-            );
-            System.out.println(this);
-            return -1;
+            return -1;// secondary chaining & no valid position
         }return  idx;
     }
+
     public boolean put(K key, V value) {
 
         boolean isCollision = false;
-        int idx = hash(key); //returns a valid index of the hashtable
+        int idx = isHash1 ? hash1(key) : hash2(key); //returns a valid index of the hashtable
 
         HashNode<K, V> node = table.get(idx);
 
@@ -65,7 +53,12 @@ public class HashTableDH<K,V> {
             }
             isCollision = true; //collision detected
             idx = doubleHash(key, i);
-            node = table.get(idx);
+            try {
+                node = table.get(idx);
+            }catch (IndexOutOfBoundsException e){
+                if(DEBUG)System.out.println("DOUBLE HASHING: No Valid Positions Due to Secondary Clustering");
+                return false;
+            }
             i++;
         }
         // insert
@@ -75,7 +68,7 @@ public class HashTableDH<K,V> {
 
         table.set(idx, newNode); // set the new node at the top of the chain
         isDeleted[idx] = false;
-        // If load factor goes beyond LOAD_FACTOR_THRESHOLD, then double hash table size
+        // If load factor goes beyond LOAD_FACTOR_THRESHOLD, then double hash1 table size
 
         if (loadFactor() >= LOAD_FACTOR_THRESHOLD) {
             if(DEBUG)System.out.println("Doubling Hashtable Size :" + loadFactor());
@@ -115,14 +108,14 @@ public class HashTableDH<K,V> {
             i++;
         }
 
-        return "openAddressing.HashTableDH{" +
+        return "HashTableDH{" +
                 "numberOfCollisions=" + numberOfCollisions +
                 ", size=" + size +
                 '}' +"\n"+s.toString() ;
     }
     public int indexOf(K key)
     {
-        int idx = hash(key);
+        int idx = isHash1 ? hash1(key) : hash2(key);
 
         HashNode<K,V> node = table.get(idx);
 
@@ -145,9 +138,7 @@ public class HashTableDH<K,V> {
 
         else return table.get(idx).value;
     }
-    public int getNumberOfHits() {
-        return numberOfHits;
-    }
+
     public int getNumberOfCollisions() {
         return numberOfCollisions;
     }

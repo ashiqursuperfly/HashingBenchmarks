@@ -1,66 +1,51 @@
-package openAddressing;
-
 import java.util.ArrayList;
 
-public class HashTableCP<K,V> {
-    private static final double LOAD_FACTOR_THRESHOLD = 0.45;
-    private static final int PRIME = 13;
-    private static final int C2 = 7;
-    private static final int C1 = 3;
+public class HashTableCP<K,V> extends MyHashTable<K> {
+    private static final int C2 = 3;
+    private static final int C1 = 1;
     private boolean DEBUG ;
+    private boolean isHASH1;
 
     private boolean[] isDeleted;
     private int numberOfCollisions;
-    private int numberOfHits;
-
-    private static final int DEFAULT_CAPACITY = 13;
-    private ArrayList<HashNode<K, V>> table; //data container
+    private ArrayList<HashNode<K, V>> data; //data container
 
     // current size of hashtable
     private int size; // current # of elements
-    private int N; // size of hashtable
 
     public int size() {
         return size;
     }
 
-    public HashTableCP(boolean DEBUG) {
-        N = DEFAULT_CAPACITY;
+    public HashTableCP(boolean DEBUG, boolean isHASH1, int initSize) {
+        super(initSize);
+        this.isHASH1 = isHASH1;
+        N = initSize;
         numberOfCollisions = 0;
-        isDeleted = new boolean[DEFAULT_CAPACITY];
+        isDeleted = new boolean[initSize];
         this.DEBUG = DEBUG;
-        table = new ArrayList<>(N);
+        data = new ArrayList<>(N);
         for (int i = 0; i < N; i++) {
-            table.add(null);
+            data.add(null);
         }
 
     }
-    private int hash(K key)
-    {
-        numberOfHits++;
-        return (Math.abs(key.hashCode()) % N);
-    }
-    private int auxHash(K key)
-    {
-        return PRIME - (Math.abs(key.hashCode()) % PRIME);
-    }
+
     private int customHash(K key, int i)
     {
-        int idx = (hash(key) + C1 * i * auxHash(key) +  C2*i*i ) % N ;
+        int idx = isHASH1 ? (hash1(key) + C1 *i * auxHash(key) +  C2*i*i ) % N  : (hash2(key) + C1 *i * auxHash(key) +  C2*i*i ) % N;
         if(idx < 0) {
-            System.out.println("Hashed Two Negative index : H1: " + hash(key) + "H2: " +
-                    auxHash(key) + "H1|H2: " + idx +"at i :"+ i + "Table Size: " + N
-            );
-            System.out.println(this);
-            return -1;
+            return -1; // secondary chaining & no valid position
         }return  idx;
     }
+
     public boolean put(K key, V value) {
 
         boolean isCollision = false;
-        int idx = hash(key); //returns a valid index of the hashtable i=0
 
-        HashNode<K, V> node = table.get(idx);
+        int idx = isHASH1 ? hash1(key) : hash2(key); //returns a valid index of the hashtable i=0
+
+        HashNode<K, V> node = data.get(idx);
 
         int i = 1;
 
@@ -70,7 +55,12 @@ public class HashTableCP<K,V> {
             }
             isCollision = true; //collision detected
             idx = customHash(key, i);
-            node = table.get(idx);
+            try {
+                node = data.get(idx);
+            }catch (IndexOutOfBoundsException e){
+                if(DEBUG)System.out.println("CUSTOM PROBING: No Valid Positions Due to Secondary Clustering");
+                return false;
+            }
             i++;
         }
         // insert
@@ -78,20 +68,20 @@ public class HashTableCP<K,V> {
 
         HashNode<K, V> newNode = new HashNode<>(key, value);
 
-        table.set(idx, newNode); // set the new node at the top of the chain
+        data.set(idx, newNode); // set the new node at the top of the chain
         isDeleted[idx] = false;
 
-        // If load factor goes beyond LOAD_FACTOR_THRESHOLD, then double hash table size
+        // If load factor goes beyond LOAD_FACTOR_THRESHOLD, then double hash1 table size
 
         if (loadFactor() >= LOAD_FACTOR_THRESHOLD) {
             if(DEBUG)System.out.println("Doubling Hashtable Size :" + loadFactor());
-            ArrayList<HashNode<K, V>> prevHashTable = table;
+            ArrayList<HashNode<K, V>> prevHashTable = data;
             N = 2 * N;
             size = 0;
-            table = new ArrayList<>(N);
+            data = new ArrayList<>(N);
             isDeleted = new boolean[N];
             for (int j = 0; j < N; j++) {
-                table.add(null);
+                data.add(null);
             }
             if(DEBUG)System.out.println("Before Copying :\n"+this.numberOfCollisions);
 
@@ -114,21 +104,21 @@ public class HashTableCP<K,V> {
 
         int i = 0;
         for (HashNode<K, V> n :
-                table) {
+                data) {
             s.append(i).append(":").append(n).append("\n");
             i++;
         }
 
-        return "openAddressing.HashTableDH{" +
+        return "HashTableCP{" +
                 "numberOfCollisions=" + numberOfCollisions +
                 ", size=" + size +
                 '}' +"\n"+s.toString() ;
     }
     public int indexOf(K key)
     {
-        int idx = hash(key);
+        int idx = isHASH1 ? hash1(key) : hash2(key);
 
-        HashNode<K,V> node = table.get(idx);
+        HashNode<K,V> node = data.get(idx);
 
         int i = 0;
         while (node != null || isDeleted[idx])
@@ -136,7 +126,7 @@ public class HashTableCP<K,V> {
             if(node != null && key.equals(node.key))
                 return idx;
             idx = customHash(key, i++);
-            node = table.get(idx);
+            node = data.get(idx);
         }
         return -1;
     }
@@ -146,25 +136,25 @@ public class HashTableCP<K,V> {
 
         if(idx == -1)return null;
 
-        else return table.get(idx).value;
+        else return data.get(idx).value;
     }
-    public boolean remove(K key)
+    public boolean remove(K k)
     {
-        int idx = indexOf(key);
+        int idx = indexOf(k);
 
         if(idx == -1) return false;
 
-        size--;
-        table.set(idx, null);
+        data.set(idx, null);
         isDeleted[idx] = true;
+        size--;
 
         return true;
 
     }
-    public int getNumberOfHits() {
-        return numberOfHits;
-    }
+
     public int getNumberOfCollisions() {
         return numberOfCollisions;
     }
+
+
 }

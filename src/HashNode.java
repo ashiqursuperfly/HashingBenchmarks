@@ -1,5 +1,3 @@
-package openAddressing;
-
 public class HashNode<K,V> {
     K key;
     V value;
