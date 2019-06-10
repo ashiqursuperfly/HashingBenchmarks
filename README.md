@@ -6,6 +6,9 @@
 
 #### HASH2 --> Knuth's Multiplicative Hashing
 
+##### Load Factor Threshold - 0.75 
+##### Initial Hashtable Size - 7
+
 
 ##### TEST#0
 
